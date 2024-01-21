@@ -2,13 +2,13 @@
   "name": "BuySellSolanaBot",
   "version": "0.0.0",
   "description": "BuySellSolanaBot",
-  "main": "index.js",
+  "main": "main.js",
   "type": "module",
   "author": {
     "name": ""
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node main.js"
   },
   "devDependencies": {
     "eslint": "^8.38.0"
