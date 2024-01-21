@@ -12,15 +12,14 @@ import axios from 'axios';
 let selectedAddress;
 let selectedToken = "";
 let gridSpread = 1;
-//let devFee = 0.1;
-let fixedSwapVal = 0.001; //how much (token or Sol) do you want to swap
+let fixedSwapVal = 0.001; //Swap Amount of Sol or Token
 let slipTarget = 0.5;
 let refreshTime = 5;
 const tokenSymbol = "SOL";
 const usdcMintAddress_pub = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";  //USDC mainnet
 // const usdcMintAddress_pub = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr"; //USDC devent
 const usdcMintAddress = new PublicKey(usdcMintAddress_pub); //USDC devnet
-
+// makeSellTransaction - Sell sol,  makeBuyTransaction - buy sol
 async function getTokens() {
     try {
         const response = await axios.get('https://token.jup.ag/strict');
@@ -216,12 +215,12 @@ async function refresh(selectedToken) {
             console.log("");
 
             /**    BUY and SELL */
-            console.log("Crossed Down! - Create Buy Order");
-            await makeBuyTransaction();
+            console.log("Crossed Above! - Create Sell Order");
+            await makeSellTransaction();
             console.log("Shifting Layers Up");
             //create new layers to monitor
-            spreadUp = spreadUp - spreadIncrement;
-            spreadDown = spreadDown - spreadIncrement;
+            spreadUp = spreadUp + spreadIncrement;
+            spreadDown = spreadDown + spreadIncrement;
 
             // if (currentPrice >= spreadUp) {
             //     console.log("Crossed Above! - Create Sell Order");
@@ -294,9 +293,9 @@ async function makeSellTransaction() {
     const rawTransaction = transaction.serialize()
     const txid = await connection.sendRawTransaction(rawTransaction, {
         skipPreflight: true,
-        maxRetries: 5
+        maxRetries: 2
     });
-    await connection.confirmTransaction(txid);
+    await connection.confirmTransaction({ signature: txid });
     console.log(`https://solscan.io/tx/${txid}`);
     sellOrders++;
 }
@@ -305,7 +304,6 @@ async function makeBuyTransaction() {
     var usdcLamports = Math.floor((fixedSwapVal * currentPrice) * 1000000);
     var slipBPS = slipTarget * 100;
     // retrieve indexed routed map
-    console.log('-------Before index-route-map-----------------');
     // const indexedRouteMap = await (await fetch('https://quote-api.jup.ag/v6/indexed-route-map')).json();
     // console.log('--------indexedRouterMap-------', indexedRouteMap);
     // const getMint = (index) => indexedRouteMap["mintKeys"][index];
@@ -350,9 +348,9 @@ async function makeBuyTransaction() {
     const rawTransaction = transaction.serialize()
     const txid = await connection.sendRawTransaction(rawTransaction, {
         skipPreflight: true,
-        maxRetries: 5
+        maxRetries: 2
     });
-    await connection.confirmTransaction(txid);
+    await connection.confirmTransaction({ signature: txid });
     console.log(`https://solscan.io/tx/${txid}`);
     buyOrders++;
 }
