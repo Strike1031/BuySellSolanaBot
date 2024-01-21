@@ -6,8 +6,8 @@ import dotenv from 'dotenv';
 import { Wallet } from '@project-serum/anchor';
 import axios from 'axios';
 
-let selectedAddress;
-let selectedToken = "";
+let selectedAddress = "So11111111111111111111111111111111111111112";
+let selectedToken = "SOL";
 let buyOrders, sellOrders;
 
 let gridSpread = 1;
@@ -15,7 +15,6 @@ let fixedSwapVal = 0.001; //Swap Amount of Sol or Token
 let slipTarget = 0.5;
 let refreshTime = 5;
 
-const tokenSymbol = "SOL";
 const usdcMintAddress_pub = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";  //USDC mainnet
 // makeSellTransaction - Sell sol,  makeBuyTransaction - buy sol
 
@@ -40,32 +39,13 @@ const connection = new Connection(process.env.RPC_ENDPOINT, 'confirmed', {
     timeout: 60000
 });
 
-async function init() {
-    await getTokens();
-    let tokens = JSON.parse(await fs.readFile('tokens.txt'));
-
-    const token = tokens.find((t) => t.symbol === tokenSymbol);
-    if (token) {
-        console.log(`Selected Token: ${token.symbol}`);
-        console.log(`Token Address: ${token.address}`);
-        selectedToken = token.symbol;
-        selectedAddress = token.address;
-    } else {
-        console.log(`Token ${tokenSymbol} not found.`);
-        return;
-    }
-
-    console.log(`Selected Token: ${selectedToken}`);
-    console.log(`Selected Grid Spread: ${gridSpread}%`);
-    console.log(`Swapping ${fixedSwapVal} ${selectedToken} per layer.`);
-    console.log(`Slippage Target: ${slipTarget}%`)
-}
 
 async function makeSellTransaction() {
     var fixedSwapValLamports = fixedSwapVal * 1000000000;
     var slipBPS = slipTarget * 100;
     const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + selectedAddress + '&outputMint=' + usdcMintAddress_pub + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS);
     const routes = await response.json();
+    console.log('-----routes----', routes);
     const transaction_response = await fetch('https://quote-api.jup.ag/v6/swap', {
         method: 'POST',
         headers: {
@@ -105,7 +85,7 @@ async function makeBuyTransaction() {
     if (price_response.ok) {
         const data = await price_response.json();
         if (data.data[selectedToken]) {
-            currentPrice = data.data[selectedToken].price
+            currentPrice = data.data[selectedToken].price;
         } else {
             console.log('Cannot get price of the token');
             return;
@@ -113,11 +93,6 @@ async function makeBuyTransaction() {
     }
     var usdcLamports = Math.floor((fixedSwapVal * currentPrice) * 1000000);
     var slipBPS = slipTarget * 100;
-    console.log('----selectedAddress----', selectedAddress);
-    console.log('----------usdcMintAddress_pub--------', usdcMintAddress_pub);
-    console.log('---------usdcLamports------------', usdcLamports);
-    console.log('----------slipBPS-------------', slipBPS);
-
     const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + usdcMintAddress_pub + '&outputMint=' + selectedAddress + '&amount=' + usdcLamports + '&slippageBps=' + slipBPS);
     const routes = await response.json();
     const transaction_response = await fetch('https://quote-api.jup.ag/v6/swap', {
@@ -154,8 +129,12 @@ async function makeBuyTransaction() {
 
 
 async function main() {
-    await init();
-    await makeSellTransaction(); //Sell Sol, and get tokens
-    // await makeBuyTransaction(); //Buy Sol from current tokens
+    try{
+        // await makeBuyTransaction(); //Buy Sol from current tokens
+        await makeSellTransaction(); //Sell Sol, and get tokens
+    }
+    catch(error){
+        console.log(error);
+    }
 }
 main()
