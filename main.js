@@ -10,7 +10,7 @@ let selectedAddress = "So11111111111111111111111111111111111111112";
 let selectedToken = "SOL";
 let buyOrders, sellOrders;
 
-let gridSpread = 1;
+let gridSpread = 1; // +_ 1%
 let fixedSwapVal = 0.001; //Swap Amount of Sol or Token
 let slipTarget = 0.5;
 let refreshTime = 5;
@@ -40,10 +40,10 @@ const connection = new Connection(process.env.RPC_ENDPOINT, 'confirmed', {
 });
 
 
-async function makeSellTransaction() {
-    var fixedSwapValLamports = fixedSwapVal * 1000000000;
-    var slipBPS = slipTarget * 100;
-    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + selectedAddress + '&outputMint=' + usdcMintAddress_pub + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS);
+async function makeBuyTransaction() {
+    const fixedSwapValLamports = Math.floor(fixedSwapVal * 1000000000);
+    const slipBPS = slipTarget * 100;
+    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + selectedAddress + '&outputMint=' + usdcMintAddress_pub + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS+ '&platformFeeBps=20');
     const routes = await response.json();
     console.log('-----routes----', routes);
     const transaction_response = await fetch('https://quote-api.jup.ag/v6/swap', {
@@ -62,7 +62,7 @@ async function makeSellTransaction() {
     // deserialize the transaction
     const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
     var transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    console.log("Making Sell Order!")
+    console.log("Making Buy Order!")
     // sign the transaction
     transaction.sign([wallet.payer]);
     // Execute the transaction
@@ -73,28 +73,29 @@ async function makeSellTransaction() {
     });
     await connection.confirmTransaction({ signature: txid });
     console.log(`https://solscan.io/tx/${txid}`);
-    sellOrders++;
 }
 
-async function makeBuyTransaction() {
+async function makeSellTransaction() {
     let currentPrice;
     const price_response = await fetch(
-        `https://price.jup.ag/v4/price?ids=${selectedToken}`
+        `https://price.jup.ag/v4/price?ids=${selectedAddress}&vsToken=${usdcMintAddress_pub}`
     );
 
     if (price_response.ok) {
         const data = await price_response.json();
-        if (data.data[selectedToken]) {
-            currentPrice = data.data[selectedToken].price;
+        if (data.data[selectedAddress]) {
+            currentPrice = data.data[selectedAddress].price;
         } else {
             console.log('Cannot get price of the token');
             return;
         }
     }
-    var usdcLamports = Math.floor((fixedSwapVal * currentPrice) * 1000000);
-    var slipBPS = slipTarget * 100;
-    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + usdcMintAddress_pub + '&outputMint=' + selectedAddress + '&amount=' + usdcLamports + '&slippageBps=' + slipBPS);
+    // const fixedSwapValLamports = Math.floor((fixedSwapVal * currentPrice) );
+    const fixedSwapValLamports = Math.floor(fixedSwapVal * currentPrice * 1000000);
+    const slipBPS = slipTarget * 100;
+    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + usdcMintAddress_pub + '&outputMint=' + selectedAddress + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS + '&platformFeeBps=20');
     const routes = await response.json();
+    console.log(routes);
     const transaction_response = await fetch('https://quote-api.jup.ag/v6/swap', {
         method: 'POST',
         headers: {
@@ -108,12 +109,11 @@ async function makeBuyTransaction() {
     });
 
     const transactions = await transaction_response.json();
-
     const { swapTransaction } = transactions;
     // deserialize the transaction
     const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
     var transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    console.log("Making Buy Order!");
+    console.log("Making Sell Order!");
     // sign the transaction
     transaction.sign([wallet.payer]);
     // Execute the transaction
@@ -124,7 +124,6 @@ async function makeBuyTransaction() {
     });
     await connection.confirmTransaction({ signature: txid });
     console.log(`https://solscan.io/tx/${txid}`);
-    buyOrders++;
 }
 
 
