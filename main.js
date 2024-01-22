@@ -12,7 +12,7 @@ let buyOrders, sellOrders;
 
 let gridSpread = 1; // +_ 1%
 let fixedSwapVal = 0.001; //Swap Amount of Sol or Token
-let slipTarget = 0.5;
+let slipTarget = 5;
 let refreshTime = 5;
 
 const usdcMintAddress_pub = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";  //USDC mainnet
@@ -43,7 +43,7 @@ const connection = new Connection(process.env.RPC_ENDPOINT, 'confirmed', {
 async function makeBuyTransaction() {
     const fixedSwapValLamports = Math.floor(fixedSwapVal * 1000000000);
     const slipBPS = slipTarget * 100;
-    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + selectedAddress + '&outputMint=' + usdcMintAddress_pub + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS+ '&platformFeeBps=20');
+    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + selectedAddress + '&outputMint=' + usdcMintAddress_pub + '&amount=' + fixedSwapValLamports + '&onlyDirectRoutes=true');
     const routes = await response.json();
     console.log('-----routes----', routes);
     const transaction_response = await fetch('https://quote-api.jup.ag/v6/swap', {
@@ -55,8 +55,11 @@ async function makeBuyTransaction() {
             quoteResponse: routes,
             userPublicKey: wallet.publicKey.toString(),
             wrapUnwrapSOL: true,
+            prioritizationFeeLamports: "auto",
+            dynamicComputeUnitLimit: true,
         })
     });
+    // console.log('-----------swaps-----------', transaction_response);
     const transactions = await transaction_response.json();
     const { swapTransaction } = transactions;
     // deserialize the transaction
@@ -78,7 +81,7 @@ async function makeBuyTransaction() {
 async function makeSellTransaction() {
     const fixedSwapValLamports = Math.floor(fixedSwapVal * 1000000000);
     const slipBPS = slipTarget * 100;
-    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + usdcMintAddress_pub + '&outputMint=' + selectedAddress + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS + '&swapMode=ExactOut');
+    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + usdcMintAddress_pub + '&outputMint=' + selectedAddress + '&amount=' + fixedSwapValLamports + '&swapMode=ExactOut' + '&onlyDirectRoutes=true');
     const routes = await response.json();
     console.log(routes);
     const transaction_response = await fetch('https://quote-api.jup.ag/v6/swap', {
@@ -90,9 +93,11 @@ async function makeSellTransaction() {
             quoteResponse: routes,
             userPublicKey: wallet.publicKey.toString(),
             wrapUnwrapSOL: true,
+            prioritizationFeeLamports: "auto",
+            dynamicComputeUnitLimit: true,
         })
     });
-
+    // console.log('-----------swaps-----------', transaction_response);
     const transactions = await transaction_response.json();
     const { swapTransaction } = transactions;
     // deserialize the transaction
@@ -115,11 +120,7 @@ async function makeSellTransaction() {
 async function main() {
     try{
         await makeBuyTransaction(); //Buy Token
-        setTimeout(async()=> {
-            //Time Delay for next transaction
-            await makeSellTransaction(); //Sell Token
-        }, 5*1000);
-
+        await makeSellTransaction(); //Sell Token
     }
     catch(error){
         console.log(error);
