@@ -76,24 +76,9 @@ async function makeBuyTransaction() {
 }
 
 async function makeSellTransaction() {
-    let currentPrice;
-    const price_response = await fetch(
-        `https://price.jup.ag/v4/price?ids=${selectedAddress}&vsToken=${usdcMintAddress_pub}`
-    );
-
-    if (price_response.ok) {
-        const data = await price_response.json();
-        if (data.data[selectedAddress]) {
-            currentPrice = data.data[selectedAddress].price;
-        } else {
-            console.log('Cannot get price of the token');
-            return;
-        }
-    }
-    // const fixedSwapValLamports = Math.floor((fixedSwapVal * currentPrice) );
-    const fixedSwapValLamports = Math.floor(fixedSwapVal * currentPrice * 1000000);
+    const fixedSwapValLamports = Math.floor(fixedSwapVal * 1000000000);
     const slipBPS = slipTarget * 100;
-    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + usdcMintAddress_pub + '&outputMint=' + selectedAddress + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS + '&platformFeeBps=20');
+    const response = await fetch('https://quote-api.jup.ag/v6/quote?inputMint=' + usdcMintAddress_pub + '&outputMint=' + selectedAddress + '&amount=' + fixedSwapValLamports + '&slippageBps=' + slipBPS + '&swapMode=ExactOut');
     const routes = await response.json();
     console.log(routes);
     const transaction_response = await fetch('https://quote-api.jup.ag/v6/swap', {
@@ -129,8 +114,12 @@ async function makeSellTransaction() {
 
 async function main() {
     try{
-        // await makeBuyTransaction(); //Buy Sol from current tokens
-        await makeSellTransaction(); //Sell Sol, and get tokens
+        await makeBuyTransaction(); //Buy Token
+        setTimeout(async()=> {
+            //Time Delay for next transaction
+            await makeSellTransaction(); //Sell Token
+        }, 5*1000);
+
     }
     catch(error){
         console.log(error);
