@@ -15,7 +15,8 @@ let fixedSwapVal = 0.001; //Swap Amount of Sol or Token
 let slipTarget = 5;
 let refreshTime = 5;
 
-const usdcMintAddress_pub = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";  //USDC mainnet
+// const usdcMintAddress_pub = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";  //USDC mainnet
+const usdcMintAddress_pub = "4vqYQTjmKjxrWGtbL2tVkbAU1EVAz9JwcYtd2VE3PbVU";  //USDC mainnet
 // makeSellTransaction - Sell sol,  makeBuyTransaction - buy sol
 
 async function getTokens() {
